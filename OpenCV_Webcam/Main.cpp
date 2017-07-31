@@ -3,6 +3,8 @@
 #include <ctime>
 #include <string>
 
+int savedFrameInterval = 30; // How many seconds inbetween frame captures, set to a negitive number to disable.
+
 int updateWindow(cv::VideoCapture * capture_stream);
 
 int main()
@@ -60,12 +62,12 @@ int updateWindow(cv::VideoCapture * captureStream)
         cv::putText(frame, timestr, cvPoint(0, frame.size().height - 2.0), CV_FONT_HERSHEY_PLAIN, 0.9, cvScalar(255, 255, 255), 1, 8, false);
 
         // Save a frame every 30 seconds
-        if ((timestruct.tm_sec) % 30 == 0)
+        if (savedFrameInterval >= 0 && (timestruct.tm_sec) % savedFrameInterval == 0)
         {
             if (!savedFrame) 
             {
                 // Generate the filename
-                std::string filename = "FRAME_" + std::to_string(timestruct.tm_mon + 1) + "_" + std::to_string(timestruct.tm_mday) + "_" + std::to_string(timestruct.tm_hour) + "." + std::to_string(timestruct.tm_min) + "." + std::to_string(timestruct.tm_sec) + ".png";
+                std::string filename = "FRAME_" + std::to_string(timestruct.tm_mon + 1) + "_" + std::to_string(timestruct.tm_mday) + "_" + std::to_string(timestruct.tm_hour) + "." + std::to_string(timestruct.tm_min) + "." + std::to_string(timestruct.tm_sec) + ".jpg";
                 
                 // Save the frame
                 cv::imwrite(filename, frame);
