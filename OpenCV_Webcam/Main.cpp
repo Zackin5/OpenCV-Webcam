@@ -3,7 +3,7 @@
 #include <ctime>
 #include <string>
 
-int savedFrameInterval = 30; // How many seconds inbetween frame captures, set to a negitive number to disable.
+int savedFrameInterval = 30; // How many seconds inbetween frame captures, set to a negative number to disable.
 
 int updateWindow(cv::VideoCapture * capture_stream);
 
@@ -34,6 +34,7 @@ int main()
     return updateStatus;
 }
 
+// Timestamp an image
 void timestamp(cv::Mat * frame)
 {
     std::time_t epochtime;
@@ -50,15 +51,19 @@ void timestamp(cv::Mat * frame)
     cv::putText(*frame, timestr, cvPoint(0, frame->size().height - 2.0), CV_FONT_HERSHEY_PLAIN, 0.9, cvScalar(255, 255, 255), 1, 8, false);
 }
 
+// Main window logic
 int updateWindow(cv::VideoCapture * captureStream)
 {
+    // Time stuff
     std::time_t epochtime;
     std::tm timestruct;
+
+    // frame stuff
     cv::Mat * frame = new cv::Mat();
     bool savedFrame = false;
 
     // Loop until we hit ESC
-    for (;;)
+    while (true)
     {
         epochtime = std::time(nullptr);
         timestruct = *localtime(&epochtime);
