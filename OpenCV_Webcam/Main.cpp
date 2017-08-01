@@ -4,12 +4,14 @@
 #include <string>
 
 int savedFrameInterval = 30; // How many seconds inbetween frame captures, set to a negative number to disable.
+int webcamID = 1; // What device number is your webcam
+float windowscale = 1; // Scale of render window
 
 int updateWindow(cv::VideoCapture * capture_stream);
 
 int main()
 {
-    cv::VideoCapture captureStream(0);
+    cv::VideoCapture captureStream(webcamID);
     int updateStatus;
 
     if (!captureStream.isOpened())
@@ -97,7 +99,7 @@ int updateWindow(cv::VideoCapture * captureStream)
 
         // Upscale the image
         cv::Mat resizedFrame;
-        cv::resize(*frame, resizedFrame, cv::Size(1280, 900), 0, 0, cv::INTER_CUBIC);
+        cv::resize(*frame, resizedFrame, resizedFrame.size(), windowscale, windowscale, cv::INTER_CUBIC);
 
         // Draw the window
         cv::imshow("OpenCV Webcam", resizedFrame);
