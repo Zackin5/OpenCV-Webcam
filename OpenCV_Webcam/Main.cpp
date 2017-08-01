@@ -1,19 +1,21 @@
-#include "opencv2\opencv.hpp"
-#include <iostream>
-#include <ctime>
-#include <string>
+#include "Main.h"
 
-int savedFrameInterval = 30; // How many seconds inbetween frame captures, set to a negative number to disable.
-int webcamID = 1; // What device number is your webcam
+bool saveFrames = true; // Should we save frames at every n interval?
+unsigned int savedFrameInterval = 30; // How many seconds inbetween frame captures
+int webcamID = 0; // What device number is your webcam
 float windowscale = 1; // Scale of render window
 
-int updateWindow(cv::VideoCapture * capture_stream);
-
-int main()
+int main(int argc, char* argv[])
 {
-    cv::VideoCapture captureStream(webcamID);
+    cv::VideoCapture captureStream;
     int updateStatus;
 
+    // Handle any passed args
+    if (argc > 0)
+        handleArgs(argc, argv);
+
+    // Start the camera stream if valid
+    captureStream.open(webcamID);
     if (!captureStream.isOpened())
     {
         std::cout << "Failed to get webcam." << std::endl;
@@ -36,7 +38,35 @@ int main()
     return updateStatus;
 }
 
-// Timestamp an image
+void handleArgs(int argc, char* argv[])
+{
+    // Future notes: look into getopt (Unix!!!) or stdarg.h (Win)
+    // Definity replace alll thiiss with something more legit e.g. ^^^ becuase good god these indexes are all over the place
+
+    for (int i = 0; i < argc; i++)
+    {
+        switch (i)
+        {
+        case 0: // Save frame interval, negitive numbers disable
+            savedFrameInterval = std::atoi(argv[0]);
+            if (savedFrameInterval < 1)
+            {
+                savedFrameInterval = 60;
+                saveFrames = false;
+            }
+            break;
+        case 1: // ID of camera
+            webcamID = std::atoi(argv[2]);
+            break;
+        case 2: // Window scale
+            windowscale = std::atof(argv[3]);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 void timestamp(cv::Mat * frame)
 {
     std::time_t epochtime;
@@ -53,7 +83,6 @@ void timestamp(cv::Mat * frame)
     cv::putText(*frame, timestr, cvPoint(0, frame->size().height - 2.0), CV_FONT_HERSHEY_PLAIN, 0.9, cvScalar(255, 255, 255), 1, 8, false);
 }
 
-// Main window logic
 int updateWindow(cv::VideoCapture * captureStream)
 {
     // Time stuff
@@ -81,7 +110,7 @@ int updateWindow(cv::VideoCapture * captureStream)
         timestamp(frame);
 
         // Save a frame every 30 seconds
-        if (savedFrameInterval >= 0 && (timestruct.tm_sec) % savedFrameInterval == 0)
+        if (saveFrames && (timestruct.tm_sec % savedFrameInterval) == 0)
         {
             if (!savedFrame) 
             {
