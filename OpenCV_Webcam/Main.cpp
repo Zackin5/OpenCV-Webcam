@@ -118,17 +118,23 @@ int updateWindow(cv::VideoCapture * captureStream)
         if (bgsubEnabled)
         {
             cv::Mat fgImage;
+            cv::Mat maskFiltered;
             cv::Mat bgImage = cv::imread("./beach.jpg", 1);
 
             // Run the MOG2 function and render it to the fgMask mat
             bsMOG2->apply(*frame, fgMask);
+            
+            // Filter
+            cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5, 5));
+            cv::morphologyEx(fgMask, maskFiltered, cv::MORPH_OPEN, element);
 
             // Mask our input image (onto a nice beach image!)
             bgImage.copyTo(fgImage);
-            frame->copyTo(fgImage, fgMask);
+            frame->copyTo(fgImage, maskFiltered);
 
             // Draw windows
             cv::imshow("Foreground mask", fgMask);
+            cv::imshow("Foreground mask filtered", maskFiltered);
             cv::imshow("Foreground image", fgImage);
         }
 
