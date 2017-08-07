@@ -2,7 +2,6 @@
 #include "opencv2\opencv.hpp"
 #include <iostream>
 #include <ctime>
-#include <string>
 
 int main(int argc, char* argv[]);
 

@@ -70,16 +70,17 @@ void handleArgs(int argc, char* argv[])
 void timestamp(cv::Mat * frame)
 {
     std::time_t epochtime;
-    std::string timestr;
+    char timestr[26];
     std::tm timestruct;
 
     // Get the time and update the timestr
     epochtime = std::time(nullptr);
-    timestr = std::asctime(std::localtime(&epochtime));
-    timestr.pop_back(); // Delete the linebreak char since putText does not render it
+    localtime_s(&timestruct, &epochtime);
+    asctime_s(timestr, sizeof timestr, &timestruct);
+    timestr[24] = '\0'; // Clear the last character, else opencv's putText draws it as an unknown
 
     // Draw the timestamp
-    cv::rectangle(*frame, cvPoint(0, frame->size().height), cvPoint(timestr.length() * 8 + 1, frame->size().height - 13), cvScalar(0, 0, 0), CV_FILLED, 8, 0);
+    cv::rectangle(*frame, cvPoint(0, frame->size().height), cvPoint((sizeof(timestr) - 1) * 8 + 1, frame->size().height - 13), cvScalar(0, 0, 0), CV_FILLED, 8, 0);
     cv::putText(*frame, timestr, cvPoint(0, frame->size().height - 2.0), CV_FONT_HERSHEY_PLAIN, 0.9, cvScalar(255, 255, 255), 1, 8, false);
 }
 
@@ -97,7 +98,9 @@ int updateWindow(cv::VideoCapture * captureStream)
     while (true)
     {
         epochtime = std::time(nullptr);
-        timestruct = *localtime(&epochtime);
+        
+        // Convert to local time
+        localtime_s(&timestruct, &epochtime);
 
         // Get the camera frame
         *captureStream >> *frame;
