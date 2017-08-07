@@ -93,7 +93,7 @@ int updateWindow(cv::VideoCapture * captureStream)
     // frame stuff
     cv::Mat * frame = new cv::Mat();
     bool savedFrame = false;
-
+    
     // background subtraction
     cv::Ptr<cv::BackgroundSubtractorMOG2> bsMOG2;
     cv::Mat fgMask;
@@ -162,9 +162,9 @@ int updateWindow(cv::VideoCapture * captureStream)
         // Input handling
         switch (cv::waitKey(10))
         {
-        case 'h':   // bg subtraction start
-            bgsubEnabled = true;
+        case 'h':   // bg subtraction initalize and enable
             bsMOG2 = cv::createBackgroundSubtractorMOG2();
+            bgsubEnabled = true;
             break;
         case 27:    // Esc exit
             return 0;
