@@ -120,10 +120,14 @@ int updateWindow(cv::VideoCapture * captureStream)
             cv::Mat fgImage;
             cv::Mat bgImage = cv::imread("./beach.jpg", 1);
 
+            // Run the MOG2 function and render it to the fgMask mat
             bsMOG2->apply(*frame, fgMask);
+
+            // Mask our input image (onto a nice beach image!)
             bgImage.copyTo(fgImage);
             frame->copyTo(fgImage, fgMask);
 
+            // Draw windows
             cv::imshow("Foreground mask", fgMask);
             cv::imshow("Foreground image", fgImage);
         }
