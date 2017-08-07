@@ -1,6 +1,6 @@
 #include "Main.h"
 
-bool saveFrames = true; // Should we save frames at every n interval?
+bool saveFrames = false; // Should we save frames at every n interval?
 unsigned int savedFrameInterval = 30; // How many seconds inbetween frame captures
 int webcamID = 0; // What device number is your webcam
 float windowscale = 1; // Scale of render window
@@ -94,11 +94,16 @@ int updateWindow(cv::VideoCapture * captureStream)
     cv::Mat * frame = new cv::Mat();
     bool savedFrame = false;
 
+    // background subtraction
+    cv::Ptr<cv::BackgroundSubtractorMOG2> bsMOG2;
+    cv::Mat fgMask;
+    bool bgsubEnabled = false;
+
     // Loop until we hit ESC
     while (true)
     {
         epochtime = std::time(nullptr);
-        
+
         // Convert to local time
         localtime_s(&timestruct, &epochtime);
 
@@ -108,6 +113,20 @@ int updateWindow(cv::VideoCapture * captureStream)
         // Ensure the frame is valid
         if (frame->empty())
             return -1;
+
+        // If foreground detection is enabled perform the operations
+        if (bgsubEnabled)
+        {
+            cv::Mat fgImage;
+            cv::Mat bgImage = cv::imread("./beach.jpg", 1);
+
+            bsMOG2->apply(*frame, fgMask);
+            bgImage.copyTo(fgImage);
+            frame->copyTo(fgImage, fgMask);
+
+            cv::imshow("Foreground mask", fgMask);
+            cv::imshow("Foreground image", fgImage);
+        }
 
         // Timestamp the image
         timestamp(frame);
@@ -136,9 +155,19 @@ int updateWindow(cv::VideoCapture * captureStream)
         // Draw the window
         cv::imshow("OpenCV Webcam", resizedFrame);
 
-        // Check for the ESC keystroke and abort if hit
-        if (cv::waitKey(10) == 27)
+        // Input handling
+        switch (cv::waitKey(10))
+        {
+        case 'h':   // bg subtraction start
+            bgsubEnabled = true;
+            bsMOG2 = cv::createBackgroundSubtractorMOG2();
             break;
+        case 27:    // Esc exit
+            return 0;
+            break;
+        default:
+            break;
+        }
     }
 
     return 0;
