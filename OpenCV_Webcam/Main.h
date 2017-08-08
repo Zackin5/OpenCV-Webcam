@@ -11,5 +11,8 @@ void handleArgs(int argc, char* argv[]);
 // Timestamp an image
 void timestamp(cv::Mat * image_to_stamp);
 
+// Print a message on a image
+void drawMessage(cv::Mat inframe, cv::OutputArray outframe, char message[]);
+
 // Draw window update logic
 int updateWindow(cv::VideoCapture * capture_stream);

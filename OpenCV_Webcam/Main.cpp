@@ -1,9 +1,11 @@
 #include "Main.h"
 
-bool saveFrames = false; // Should we save frames at every n interval?
+bool saveFrames = false;              // Should we save frames at every n interval?
 unsigned int savedFrameInterval = 30; // How many seconds inbetween frame captures
-int webcamID = 0; // What device number is your webcam
-float windowscale = 1; // Scale of render window
+int webcamID = 0;                     // What device number is your webcam
+float windowscale = 1;                // Scale of render window
+bool backgroundTrainOnInit = true;    // Enable training of MOG2 background subtraction model using only the first n frames
+int backgroundTrainTime = 80;         // Time to train for
 
 int main(int argc, char* argv[])
 {
@@ -84,6 +86,14 @@ void timestamp(cv::Mat * frame)
     cv::putText(*frame, timestr, cvPoint(0, frame->size().height - 2.0), CV_FONT_HERSHEY_PLAIN, 0.9, cvScalar(255, 255, 255), 1, 8, false);
 }
 
+void drawMessage(cv::Mat inframe, cv::OutputArray outframe, char message[])
+{
+    // Draw the timestamp
+    cv::rectangle(inframe, cvPoint(0, inframe.size().height), cvPoint((sizeof(message) - 1) * 8 + 1, inframe.size().height - 13), cvScalar(0, 0, 0), CV_FILLED, 8, 0);
+    cv::putText(inframe, message, cvPoint(0, inframe.size().height - 2.0), CV_FONT_HERSHEY_PLAIN, 0.9, cvScalar(255, 255, 255), 1, 8, false);
+    inframe.copyTo(outframe);
+}
+
 int updateWindow(cv::VideoCapture * captureStream)
 {
     // Time stuff
@@ -97,7 +107,10 @@ int updateWindow(cv::VideoCapture * captureStream)
     // background subtraction
     cv::Ptr<cv::BackgroundSubtractorMOG2> bsMOG2;
     cv::Mat fgMask;
+    int bgsubTrainTime;
     bool bgsubEnabled = false;
+    bool bgFiltered = true;
+    int filterSize = 2;
 
     // Loop until we hit ESC
     while (true)
@@ -118,23 +131,43 @@ int updateWindow(cv::VideoCapture * captureStream)
         if (bgsubEnabled)
         {
             cv::Mat fgImage;
-            cv::Mat maskFiltered;
             cv::Mat bgImage = cv::imread("./beach.jpg", 1);
 
-            // Run the MOG2 function and render it to the fgMask mat
-            bsMOG2->apply(*frame, fgMask);
+            // Perform the MOG2 function depending on training options
+            if (!backgroundTrainOnInit)
+            {
+                // Training is disabled, run the function with default settings
+                bsMOG2->apply(*frame, fgMask);
+            }
+            else if(bgsubTrainTime > 0)
+            {
+                // Training is enabled but not yet run, train for the n amount of time
+                bsMOG2->apply(*frame, fgMask, 0.5);
+                bgsubTrainTime--;
+            }
+            else
+            {
+                // Training is enabled and done, run the function using only the generated bg data
+                bsMOG2->apply(*frame, fgMask, 0);
+            }
             
-            // Filter
-            cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5, 5));
-            cv::morphologyEx(fgMask, maskFiltered, cv::MORPH_OPEN, element);
+            // Filter if enabled
+            if (bgFiltered)
+            {
+                cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(filterSize, filterSize));
+                cv::morphologyEx(fgMask, fgMask, cv::MORPH_OPEN, element);
+                cv::morphologyEx(fgMask, fgMask, cv::MORPH_CLOSE, element);
+            }
 
             // Mask our input image (onto a nice beach image!)
             bgImage.copyTo(fgImage);
-            frame->copyTo(fgImage, maskFiltered);
+            frame->copyTo(fgImage, fgMask);
 
+            if (backgroundTrainOnInit && bgsubTrainTime > 0)
+                drawMessage(fgMask, fgMask, "TRAINING");
+            
             // Draw windows
             cv::imshow("Foreground mask", fgMask);
-            cv::imshow("Foreground mask filtered", maskFiltered);
             cv::imshow("Foreground image", fgImage);
         }
 
@@ -168,8 +201,20 @@ int updateWindow(cv::VideoCapture * captureStream)
         // Input handling
         switch (cv::waitKey(10))
         {
+        case '+':
+            filterSize++;
+            break;
+        case '-':
+            if (filterSize > 1)
+                filterSize--;
+            break;
+        case 'f':   // Toggle filtering of foreground mask
+            bgFiltered = !bgFiltered;
+            break;
         case 'h':   // bg subtraction initalize and enable
-            bsMOG2 = cv::createBackgroundSubtractorMOG2();
+            bsMOG2 = cv::createBackgroundSubtractorMOG2(500,16.0,false);
+            if (backgroundTrainOnInit)
+                bgsubTrainTime = backgroundTrainTime;
             bgsubEnabled = true;
             break;
         case 27:    // Esc exit
