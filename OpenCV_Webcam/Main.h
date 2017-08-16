@@ -2,6 +2,7 @@
 #include "opencv2\opencv.hpp"
 #include <iostream>
 #include <ctime>
+#include "opencv2\bgsegm.hpp"
 
 int main(int argc, char* argv[]);
 

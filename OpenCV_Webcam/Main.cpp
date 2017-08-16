@@ -4,8 +4,8 @@ bool saveFrames = false;              // Should we save frames at every n interv
 unsigned int savedFrameInterval = 30; // How many seconds inbetween frame captures
 int webcamID = 0;                     // What device number is your webcam
 float windowscale = 1;                // Scale of render window
-bool backgroundTrainOnInit = true;    // Enable training of MOG2 background subtraction model using only the first n frames
-int backgroundTrainTime = 80;         // Time to train for
+bool backgroundTrainOnInit = false;    // Enable training of MOG2 background subtraction model using only the first n frames
+int backgroundTrainTime = 120;         // Time to train for
 
 int main(int argc, char* argv[])
 {
@@ -106,10 +106,11 @@ int updateWindow(cv::VideoCapture * captureStream)
     
     // background subtraction
     cv::Ptr<cv::BackgroundSubtractorMOG2> bsMOG2;
+    cv::Ptr<cv::bgsegm::BackgroundSubtractorGMG> bsGMG;
     cv::Mat fgMask;
     int bgsubTrainTime;
     bool bgsubEnabled = false;
-    bool bgFiltered = true;
+    bool bgFiltered = false;
     int filterSize = 2;
 
     // Loop until we hit ESC
@@ -139,16 +140,13 @@ int updateWindow(cv::VideoCapture * captureStream)
                 // Training is disabled, run the function with default settings
                 bsMOG2->apply(*frame, fgMask);
             }
-            else if(bgsubTrainTime > 0)
-            {
-                // Training is enabled but not yet run, train for the n amount of time
-                bsMOG2->apply(*frame, fgMask, 0.5);
-                bgsubTrainTime--;
-            }
             else
             {
                 // Training is enabled and done, run the function using only the generated bg data
-                bsMOG2->apply(*frame, fgMask, 0);
+                bsGMG->apply(*frame, fgMask, 0.5);
+
+                if (bgsubTrainTime > 0)
+                    bgsubTrainTime--;
             }
             
             // Filter if enabled
@@ -163,6 +161,7 @@ int updateWindow(cv::VideoCapture * captureStream)
             bgImage.copyTo(fgImage);
             frame->copyTo(fgImage, fgMask);
 
+            // Draw training notifacation
             if (backgroundTrainOnInit && bgsubTrainTime > 0)
                 drawMessage(fgMask, fgMask, "TRAINING");
             
@@ -212,9 +211,15 @@ int updateWindow(cv::VideoCapture * captureStream)
             bgFiltered = !bgFiltered;
             break;
         case 'h':   // bg subtraction initalize and enable
-            bsMOG2 = cv::createBackgroundSubtractorMOG2(500,16.0,false);
             if (backgroundTrainOnInit)
+            {
                 bgsubTrainTime = backgroundTrainTime;
+                bsGMG = cv::bgsegm::createBackgroundSubtractorGMG(backgroundTrainTime);
+            }
+            else
+            {
+                bsMOG2 = cv::createBackgroundSubtractorMOG2(500, 16.0, false);
+            }
             bgsubEnabled = true;
             break;
         case 27:    // Esc exit
